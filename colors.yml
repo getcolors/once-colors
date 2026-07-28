@@ -1,0 +1,39 @@
+profile: colors-website
+workdir: .colors
+
+# Public SSH key authorized by the remote ForceCommand for `sudo once update <host>`
+# and nothing else. Its private half stays in ssh-agent, never in this repo.
+deploy-pubkey: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHDKdUkY+SfRm6ttOz2EEZ2+i/zm+o1mpMOdMeGUr0t4 32617+amiorin@users.noreply.github.com
+
+once:
+  applications:
+    - host: www.getcolors.ai
+      image: ghcr.io/getcolors/colors-website:latest
+
+provider-compute: oci
+provider-smtp: resend
+provider-dns: cloudflare
+provider-backend: r2
+compute-prevent-destroy: true
+
+# --- Oracle Cloud Infrastructure -------------------------------------------
+# Authenticates through the named profile in ~/.oci/config; no COLORS_PAR_* var.
+oci-config-file-profile: DEFAULT
+oci-compartment-id: ocid1.tenancy.oc1..aaaaaaaabz6wkmand36zaln2wbyuqqflr2uzohoj3briepj4mfpohas2bxsq
+oci-subnet-id: ocid1.subnet.oc1.eu-frankfurt-1.aaaaaaaaeo3hhvldibbw42m6atn52izm6vmaxxcjbfm2fz7t3glvw3ovihta
+oci-availability-domain: XquT:EU-FRANKFURT-1-AD-1
+oci-display-name: once
+oci-shape: VM.Standard.A2.Flex
+oci-ocpus: 1
+oci-memory-in-gbs: 6
+oci-boot-volume-size-in-gbs: 50
+oci-boot-volume-vpus-per-gb: 30
+# Path to a public-key file read by OpenTofu at plan time. Path only, never contents.
+oci-ssh-authorized-keys: /Users/alberto/.ssh/id_ed25519.pub
+
+# --- Cloudflare R2 state backend -------------------------------------------
+# EU-jurisdiction endpoint (note the .eu. segment). Credentials come from
+# COLORS_PAR_R2_ACCESS_KEY_ID / COLORS_PAR_R2_SECRET_ACCESS_KEY, never here.
+# State keys are derived as <profile>/<tool>.tfstate.
+r2-bucket: tofu-state-319271fed8bc6d2d9059362be1165f37-eu
+r2-endpoint: https://319271fed8bc6d2d9059362be1165f37.eu.r2.cloudflarestorage.com
