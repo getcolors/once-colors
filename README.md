@@ -106,7 +106,7 @@ Deploy keys are not configured in this repository and never stored here. Each
 application naming a repository under `github:` gets its own keypair, generated
 fresh on **every** `create`. The public half is installed on the server scoped to
 that one host; the private half is published straight to a GitHub Actions
-environment named after the profile (`colors-website`), together with the values
+environment named after the profile (`once-colors`), together with the values
 a workflow needs to reach the box:
 
 | Published as | Name |

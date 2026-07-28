@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repository is
 
-Desired-state deployment for the `colors-website` ONCE stack: one Oracle Cloud VM, DNS on Cloudflare, SMTP on Resend, OpenTofu state in Cloudflare R2. Only five files are tracked (`colors.yml`, `green`, `.envrc`, `README.md`, this file) — everything else is generated or secret. The application code itself lives in a separate repo (`../colors-website`), shipped here only as the container image referenced in `colors.yml`.
+Desired-state deployment for the `once-colors` ONCE stack: one Oracle Cloud VM, DNS on Cloudflare, SMTP on Resend, OpenTofu state in Cloudflare R2. Only five files are tracked (`colors.yml`, `green`, `.envrc`, `README.md`, this file) — everything else is generated or secret. The application code itself lives in a separate repo (`../colors-website`), shipped here only as the container image referenced in `colors.yml`.
 
 ## Commands
 
@@ -66,7 +66,7 @@ OCI is the exception: it authenticates from `~/.oci/config` via `oci-config-file
 
 ### Deploy keys
 
-There is no `deploy-pubkey` key in `colors.yml`. Any application naming a repo as `github: owner/repo` gets its own keypair, **regenerated on every `create` and never stored**. The public half is installed with a per-host ForceCommand (`command="/usr/local/bin/deploy <host>"`), so one app's key cannot deploy another's. The private half, plus `SERVER_IP` / `SERVER_USER` / `SSH_KNOWN_HOSTS`, is published by the `github` step to a GitHub Actions environment named after the profile (`colors-website`) — via the `gh` CLI, so `gh` must be installed and `COLORS_PAR_GITHUB_TOKEN` must be able to write repo secrets. `SSH_KNOWN_HOSTS` is read off the server itself, so a workflow pins the host key instead of trusting `ssh-keyscan`.
+There is no `deploy-pubkey` key in `colors.yml`. Every repo named as `github: owner/repo` gets one keypair, **regenerated on every `create` and never stored** — per repository, not per application, so two apps sharing a repo share one key. The public half is installed with a ForceCommand naming every host that repo serves (`command="/usr/local/bin/deploy <host> [host...]"`), so one repo's key cannot deploy another's. A deploy is a ping: the client sends no command and the entry decides what to update. The private half, plus `SERVER_IP` / `SERVER_USER` / `SSH_KNOWN_HOSTS`, is published by the `github` step to a GitHub Actions environment named after the profile (`once-colors`) — via the `gh` CLI, so `gh` must be installed and `COLORS_PAR_GITHUB_TOKEN` must be able to write repo secrets. `SSH_KNOWN_HOSTS` is read off the server itself, so a workflow pins the host key instead of trusting `ssh-keyscan`.
 
 Installing a new key invalidates the old one immediately, so `files/authorized-keys` deliberately keeps **one** previous generation per host alongside the current one: if publication to GitHub fails, the repo's existing key keeps working until the next `create` heals it. Two generations is the entire benefit — more only extends how long a leaked key stays usable.
 
