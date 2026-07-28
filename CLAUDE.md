@@ -26,14 +26,23 @@ Desired-state deployment for the `colors-website` ONCE stack: one Oracle Cloud V
 
 `green` is a thin babashka launcher. It holds *no* logic beyond dependency resolution and locating `colors.yml`; validation, the workflow DAG, and every step live in the `io.github.bigconfig-ai/once` library, pinned by git SHA inside `green` itself (`once-sha`, `green-sha`, managed upstream by `bb pin` — do not hand-edit). `launcher-contract` guards against a stale pin: a mismatch exits 2 with an actionable message instead of a "could not locate" error. Set `ONCE_LIB_ROOT` / `GREEN_LIB_ROOT` to point at working trees instead of the pins.
 
-To read library source: `~/.gitlibs/libs/io.github.bigconfig-ai/once/<once-sha>/green/src/clj/io/github/bigconfig_ai/once/` — `workflow.clj` (the DAG), `validate.clj` (provider registry: required keys, secrets, and which secrets are passed to OpenTofu as env vars), `tools.clj` (the steps and their templates).
+To read library source: `~/.gitlibs/libs/io.github.bigconfig-ai/once/<once-sha>/green/src/clj/io/github/bigconfig_ai/once/` — `workflow.clj` (the DAG), `validate.clj` (provider registry: required keys, secrets, and which secrets are passed to OpenTofu as env vars), `tools.clj` (the steps and their templates), `github.clj` (deploy-key generation and publication), `describe.clj` (the read-only report).
 
-The DAG (`create`; `delete` runs it in reverse, preceded by an ansible-cleanup step that drops the managed `~/.ssh/config` block):
+The `create` DAG:
 
 ```
-start ─┬─ tofu-compute ─┐                        ┌─ ansible-local
-       └─ tofu-smtp ────┴─ tofu-dns ─ smtp-post ─┴─ ansible-remote
+start ─┬─ tofu-compute ─┐                             ┌─ ansible-local
+       └─ tofu-smtp ────┴─ tofu-dns ─ tofu-smtp-post ─┴─ ansible-remote ─ github
 ```
+
+`delete` is not merely this graph reversed. It is a distinct wiring that runs strictly serially until the last fan-out, and it leads with two steps `create` never runs in that position:
+
+```
+start ─ github ─ ansible-cleanup ─ tofu-smtp-post ─ tofu-dns ─┬─ tofu-smtp
+                                                              └─ tofu-compute
+```
+
+`github` runs *first* on delete, revoking the published Actions secret and variables before the server they point at goes away; `ansible-cleanup` then drops the managed `~/.ssh/config` block.
 
 Stages hand off through OpenTofu `params` outputs: compute emits the public IP/user, smtp emits the Resend domain id and DNS records, which `tofu-dns` renders into `apps.tf.json` / `smtp.tf.json`. On a real `delete` the start step reads those outputs back out of state so a destroy has the same params a create had.
 
@@ -43,7 +52,9 @@ Stages hand off through OpenTofu `params` outputs: compute emits the public IP/u
 
 ### Secrets
 
-No credential is ever written to `colors.yml`. Each secret flat key is supplied at runtime through `COLORS_PAR_<UPPER_SNAKE_KEY>` and overlaid onto the flat key by the start step. `.envrc` (committed, secret-free) sources `.envrc.private` (gitignored) — run `direnv allow` once. Currently in use: `COLORS_PAR_CLOUDFLARE_API_TOKEN`, `COLORS_PAR_RESEND_API_KEY`, `COLORS_PAR_RESEND_PASSWORD`, `COLORS_PAR_R2_ACCESS_KEY_ID`, `COLORS_PAR_R2_SECRET_ACCESS_KEY`.
+No credential is ever written to `colors.yml`. Each secret flat key is supplied at runtime through `COLORS_PAR_<UPPER_SNAKE_KEY>` and overlaid onto the flat key by the start step. `.envrc` (committed, secret-free) sources `.envrc.private` (gitignored) — run `direnv allow` once. Currently in use: `COLORS_PAR_CLOUDFLARE_API_TOKEN`, `COLORS_PAR_RESEND_API_KEY`, `COLORS_PAR_RESEND_PASSWORD`, `COLORS_PAR_R2_ACCESS_KEY_ID`, `COLORS_PAR_R2_SECRET_ACCESS_KEY`, `COLORS_PAR_GITHUB_TOKEN`.
+
+`COLORS_PAR_GITHUB_TOKEN` is required by `delete` as well as `create` — validation demands it whenever any application carries a `github:` key, because delete has to withdraw what create published.
 
 Secrets that OpenTofu needs are exported into the tofu process environment (mapped in `validate/providers` `:tofu-env`) so they stay out of the plaintext `.tf` files in the work tree. The Resend SMTP password is *not* in `:tofu-env` — Ansible looks it up from the environment at play time.
 
@@ -51,10 +62,17 @@ OCI is the exception: it authenticates from `~/.oci/config` via `oci-config-file
 
 ### Remote server
 
-`ansible-remote` installs docker, ONCE, and babashka, then creates a `deploy` user with NOPASSWD sudo restricted to `/usr/local/bin/once *`, and authorizes `deploy-pubkey` behind a ForceCommand (`/usr/local/bin/deploy`). That script accepts exactly `sudo once update <host>` for a host ONCE already knows — it is the CI deploy path, not a shell. The `once` Ansible module then reconciles the application list from `colors.yml` onto the box.
+`ansible-remote` installs docker, ONCE, and babashka, then creates a `deploy` user with NOPASSWD sudo restricted to `/usr/local/bin/once *`, and authorizes the deploy keys behind a ForceCommand (`/usr/local/bin/deploy`). That script accepts exactly `sudo once update <host>` for a host ONCE already knows — it is the CI deploy path, not a shell. The `once` Ansible module then reconciles the application list from `colors.yml` onto the box.
+
+### Deploy keys
+
+There is no `deploy-pubkey` key in `colors.yml`. Any application naming a repo as `github: owner/repo` gets its own keypair, **regenerated on every `create` and never stored**. The public half is installed with a per-host ForceCommand (`command="/usr/local/bin/deploy <host>"`), so one app's key cannot deploy another's. The private half, plus `SERVER_IP` / `SERVER_USER` / `SSH_KNOWN_HOSTS`, is published by the `github` step to a GitHub Actions environment named after the profile (`colors-website`) — via the `gh` CLI, so `gh` must be installed and `COLORS_PAR_GITHUB_TOKEN` must be able to write repo secrets. `SSH_KNOWN_HOSTS` is read off the server itself, so a workflow pins the host key instead of trusting `ssh-keyscan`.
+
+Installing a new key invalidates the old one immediately, so `files/authorized-keys` deliberately keeps **one** previous generation per host alongside the current one: if publication to GitHub fails, the repo's existing key keeps working until the next `create` heals it. Two generations is the entire benefit — more only extends how long a leaked key stays usable.
 
 ## Gotchas
 
-- `.gitignore` is `.*` with `!.envrc`, so any new dotfile is invisible to git unless explicitly negated.
+- `.gitignore` is `.*` with `!.envrc`, so any new dotfile is invisible to git unless explicitly negated. That pattern also ignores `.gitignore` itself, which is why the file is untracked and absent from a fresh clone — **check it exists before running `git add`**, or `.envrc.private` and `.colors/` are staged as ordinary untracked files. It went missing in exactly this way once already.
+- The `github` step shells out to `gh`. It is not one of the tools `README.md` lists as a prerequisite, but a `create` with any `github:` application fails without it.
 - `OCI_CLI_AUTH=security_token` in `.envrc` exists only because the local OCI `DEFAULT` profile is session-token based and the `oci` CLI rejects it otherwise. The OpenTofu `oracle/oci` provider detects `security_token_file` on its own — do not treat the variable as something `green` needs. Session tokens expire; a stale one surfaces as an auth failure at plan time, not as a config error.
 - The compute template's image data source hardcodes `shape = "VM.Standard.A1.Flex"` and ignores `oci-shape`. Harmless while the shape stays Ampere/ARM (A1, A2), but it would select the wrong image for an x86 shape.

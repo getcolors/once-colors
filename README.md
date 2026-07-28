@@ -17,6 +17,7 @@ arrives here only as a container image reference.
 | `ansible-playbook` | server and local SSH-config stages |
 | [direnv](https://direnv.net) | loads credentials from `.envrc.private` |
 | `oci` CLI + `~/.oci/config` | Oracle Cloud authentication |
+| [`gh`](https://cli.github.com) | publishes deploy keys to the app repositories |
 
 You also need the SSH private key matching `oci-ssh-authorized-keys` loaded in
 `ssh-agent` — the compute stage and Ansible both connect to the server with it.
@@ -38,6 +39,7 @@ export COLORS_PAR_RESEND_API_KEY=...
 export COLORS_PAR_RESEND_PASSWORD=...
 export COLORS_PAR_R2_ACCESS_KEY_ID=...
 export COLORS_PAR_R2_SECRET_ACCESS_KEY=...
+export COLORS_PAR_GITHUB_TOKEN=...    # writes deploy keys to the app repos
 ```
 
 Oracle Cloud is the exception: it authenticates through the profile named by
@@ -71,7 +73,11 @@ edits:
 - **Ship a new image** — change `once.applications[].image`.
 - **Resize the VM** — `oci-ocpus`, `oci-memory-in-gbs`, `oci-shape`.
 - **Add an application** — append to `once.applications` with `host` and
-  `image`; the DNS record and the ONCE app are both derived from it.
+  `image`; the DNS record and the ONCE app are both derived from it. Add
+  `github: owner/repo` to have deploy credentials published to that repository.
+  There is no implicit apex or wildcard record — a hostname that is not listed
+  does not resolve, which is why `getcolors.ai` appears alongside
+  `www.getcolors.ai`.
 
 ### Deleting
 
@@ -87,15 +93,38 @@ The flag is intentionally not disable-able by editing the file alone.
 ## How a deploy reaches the server
 
 CI does not have shell access to the box. The Ansible stage creates a `deploy`
-user whose authorized key (`deploy-pubkey` in `colors.yml`) is pinned to a
-ForceCommand script accepting exactly one command:
+user whose authorized keys are pinned to a ForceCommand script accepting exactly
+one command:
 
 ```sh
 ssh deploy@<server> sudo once update <host>
 ```
 
 The host must already be a known ONCE application; anything else is rejected.
-The matching private key never lives in this repository.
+
+Deploy keys are not configured in this repository and never stored here. Each
+application naming a repository under `github:` gets its own keypair, generated
+fresh on **every** `create`. The public half is installed on the server scoped to
+that one host; the private half is published straight to a GitHub Actions
+environment named after the profile (`colors-website`), together with the values
+a workflow needs to reach the box:
+
+| Published as | Name |
+| --- | --- |
+| Secret | `SSH_PRIVATE_KEY` |
+| Variable | `SERVER_IP` |
+| Variable | `SERVER_USER` |
+| Variable | `SSH_KNOWN_HOSTS` |
+
+`SSH_KNOWN_HOSTS` is read from the server itself, so a workflow can pin the host
+key rather than running `ssh-keyscan` and trusting whatever answers.
+
+Because keys rotate on every `create`, the server keeps the previous generation
+working alongside the current one. If publication to GitHub fails, CI keeps
+deploying with the old key until the next `create` repairs it.
+
+Publication uses the `gh` CLI and `COLORS_PAR_GITHUB_TOKEN`. `delete` needs that
+token too — it withdraws the secret and variables that `create` published.
 
 ## Layout
 
@@ -108,7 +137,13 @@ green          launcher (babashka); delegates to the pinned `once` library
 ```
 
 Note that `.gitignore` ignores all dotfiles (`.*`) except `.envrc`, so a new
-dotfile needs an explicit negation to be tracked.
+dotfile needs an explicit negation to be tracked. It also ignores *itself*, so
+it is not in the repository and a fresh clone starts without it. Recreate it
+before staging anything, or `.envrc.private` will be committed:
+
+```sh
+printf '.*\n!.envrc\n' > .gitignore
+```
 
 See [CLAUDE.md](CLAUDE.md) for the workflow DAG, how stages pass values to each
 other, and where the `once` library source lives.
