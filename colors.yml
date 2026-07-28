@@ -24,6 +24,10 @@ oci-subnet-id: ocid1.subnet.oc1.eu-frankfurt-1.aaaaaaaaeo3hhvldibbw42m6atn52izm6
 oci-availability-domain: XquT:EU-FRANKFURT-1-AD-1
 oci-display-name: once
 oci-shape: VM.Standard.A2.Flex
+# Pinned to the image this instance actually booted from. Left unset, source_id
+# tracks whatever Canonical published most recently, and since it forces
+# replacement, a routine apply would eventually propose destroying the server.
+oci-image-id: ocid1.image.oc1.eu-frankfurt-1.aaaaaaaal4itgbo25fulz7jbwyjdk2qc775l4npiqraf44ac62pf4iqfddsa
 oci-ocpus: 1
 oci-memory-in-gbs: 6
 oci-boot-volume-size-in-gbs: 50
