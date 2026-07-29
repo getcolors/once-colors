@@ -25,7 +25,7 @@ Everything else is generated (`.colors/`) or secret (`.envrc.private`). Check `g
 
 Three launchers are installed and they are interchangeable — same `colors.yml`, same DAG, same OpenTofu state. `./green` is the one used in practice and the one the examples below assume; `./red` (Bun) and `./blue` (uv) accept exactly the same commands and flags. Switch only between completed commands, never concurrently against the same state.
 
-**`./red` does not currently run here.** The installed payload predates the launcher fix and fails on a bare `Cannot find package 'package-once-red'` — it needs `bun install` to have been run, and this repository has no `node_modules`. Re-installing the skill (see *Updating to a newer ONCE*) replaces it with a launcher that resolves its own dependencies into `~/.cache/package-once-red/` on first run, keyed on the pin in `package.json`, writing nothing into this repository. `./green` and `./blue` already resolve on first run and are unaffected.
+None of them needs an install step. Each resolves its own dependencies on first run — green into `~/.gitlibs`, blue through uv's script metadata, red into `~/.cache/package-once-red/` keyed on the pin in `package.json` — and none writes into this repository. Red gained that behaviour in once `39f00e2`; before it, `./red` failed here on a bare `Cannot find package 'package-once-red'` because this repository has no `node_modules` and nothing had run `bun install`.
 
 ```sh
 ./green describe            # read-only status: providers, compute IP, per-app image/digest/update-available
@@ -49,13 +49,18 @@ To read library source: `~/.gitlibs/libs/io.github.bigconfig-ai/once/<once-sha>/
 
 ### Updating to a newer ONCE
 
-The launchers here are *installed copies*, so they lag the upstream monorepo until re-installed. Update by re-installing the skill, never by editing a pin by hand:
+The launchers here are *installed copies*, so they lag the upstream monorepo until re-installed. Update by re-installing, never by editing a pin by hand — it takes two steps:
 
 ```sh
-npx skills use getcolors/once@package-once-green   # and @package-once-red, @package-once-blue
+npx skills update -p            # refreshes .agents/skills/ and skills-lock.json
+cp .agents/skills/package-once-green/green green    # and red, blue
 ```
 
-That rewrites `.agents/skills/package-once-*/` and `skills-lock.json` together; the launchers at the repo root are those payloads. Re-install all three or they drift apart, which defeats the point of the colours being interchangeable. Check the current pin with `grep once-sha green` and compare against the monorepo's `skills/package-once-green/green`.
+The second step is not optional and nothing does it for you. **The three launchers at the repo root are copies of the skill payloads, not symlinks to them** — `skills update` rewrites `.agents/skills/` and leaves the root files untouched, so a project that skips the copy keeps running the old pin while its lockfile claims the new one. Refresh all three or the colours stop being interchangeable.
+
+`npx skills use <pkg>@<skill>` is **not** the update command despite the name; it prints a prompt for using a skill without installing it, and leaves the project unchanged. The installing verbs are `add` and `update`.
+
+Verify with `grep once-sha green` (or `grep once# red`) against the monorepo's `skills/package-once-green/green`.
 
 An outdated launcher does not render from a stale contract — `launcher-contract` refuses to run and exits 2. Treat that as the signal to re-install.
 
