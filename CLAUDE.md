@@ -4,9 +4,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repository is
 
-Desired-state deployment for the `once-colors` ONCE stack: one Oracle Cloud VM, DNS on Cloudflare, SMTP on Resend, OpenTofu state in Cloudflare R2. Only five files are tracked (`colors.yml`, `green`, `.envrc`, `README.md`, this file) — everything else is generated or secret. The application code itself lives in a separate repo (`../colors-website`), shipped here only as the container image referenced in `colors.yml`.
+Desired-state deployment for the `once-colors` ONCE stack: one Oracle Cloud VM, DNS on Cloudflare, SMTP on Resend, OpenTofu state in Cloudflare R2. The application code itself lives in a separate repo (`../colors-website`), shipped here only as the container image referenced in `colors.yml`.
+
+Nothing here is application source. What is tracked is desired state (`colors.yml`), the three installed launchers, the skill packages behind them, and the dev-environment files:
+
+```text
+colors.yml                     the desired state — the only file you normally edit
+green, red, blue               installed launchers, one per colour (see Commands)
+.agents/skills/package-once-*  the installed skill packages; the launchers above are copies of their payloads
+.claude/skills/package-once-*  symlinks into .agents/skills, so Claude Code discovers them
+skills-lock.json               records the skill source and content hash
+.envrc                         secret-free; sources the gitignored .envrc.private
+devenv.nix, devenv.lock        the toolchain (see Prerequisites in README.md)
+package.json, bun.lock         Bun manifest for the red launcher's dependency resolution
+```
+
+Everything else is generated (`.colors/`) or secret (`.envrc.private`). Check `git ls-files` rather than assuming — `.gitignore` is `.*` with narrow negations, so what is tracked is not obvious from the working tree (see Gotchas).
 
 ## Commands
+
+Three launchers are installed and they are interchangeable — same `colors.yml`, same DAG, same OpenTofu state. `./green` is the one used in practice and the one the examples below assume; `./red` (Bun) and `./blue` (uv) accept exactly the same commands and flags. Switch only between completed commands, never concurrently against the same state.
+
+**`./red` does not currently run here.** The installed payload predates the launcher fix and fails on a bare `Cannot find package 'package-once-red'` — it needs `bun install` to have been run, and this repository has no `node_modules`. Re-installing the skill (see *Updating to a newer ONCE*) replaces it with a launcher that resolves its own dependencies into `~/.cache/package-once-red/` on first run, keyed on the pin in `package.json`, writing nothing into this repository. `./green` and `./blue` already resolve on first run and are unaffected.
 
 ```sh
 ./green describe            # read-only status: providers, compute IP, per-app image/digest/update-available
@@ -27,6 +46,18 @@ Desired-state deployment for the `once-colors` ONCE stack: one Oracle Cloud VM, 
 `green` is a thin babashka launcher. It holds *no* logic beyond dependency resolution and locating `colors.yml`; validation, the workflow DAG, and every step live in the `io.github.bigconfig-ai/once` library, pinned by git SHA inside `green` itself (`once-sha`, `green-sha`, managed upstream by `bb pin` — do not hand-edit). `launcher-contract` guards against a stale pin: a mismatch exits 2 with an actionable message instead of a "could not locate" error. Set `ONCE_LIB_ROOT` / `GREEN_LIB_ROOT` to point at working trees instead of the pins.
 
 To read library source: `~/.gitlibs/libs/io.github.bigconfig-ai/once/<once-sha>/green/src/clj/io/github/bigconfig_ai/once/` — `workflow.clj` (the DAG), `validate.clj` (provider registry: required keys, secrets, and which secrets are passed to OpenTofu as env vars), `tools.clj` (the steps and their templates), `github.clj` (deploy-key generation and publication), `describe.clj` (the read-only report).
+
+### Updating to a newer ONCE
+
+The launchers here are *installed copies*, so they lag the upstream monorepo until re-installed. Update by re-installing the skill, never by editing a pin by hand:
+
+```sh
+npx skills use getcolors/once@package-once-green   # and @package-once-red, @package-once-blue
+```
+
+That rewrites `.agents/skills/package-once-*/` and `skills-lock.json` together; the launchers at the repo root are those payloads. Re-install all three or they drift apart, which defeats the point of the colours being interchangeable. Check the current pin with `grep once-sha green` and compare against the monorepo's `skills/package-once-green/green`.
+
+An outdated launcher does not render from a stale contract — `launcher-contract` refuses to run and exits 2. Treat that as the signal to re-install.
 
 The `create` DAG:
 
