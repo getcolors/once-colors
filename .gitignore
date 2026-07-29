@@ -1,4 +1,6 @@
 .*
 !.envrc
 !.gitignore
+!.agents
+!.claude
 node_modules/
