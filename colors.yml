@@ -9,6 +9,9 @@ once:
     - host: getcolors.ai
       image: ghcr.io/getcolors/colors-redirect:latest
       github: getcolors/colors-redirect
+    - host: bigconfig.online
+      image: ghcr.io/getcolors/colors-redirect:latest
+      github: getcolors/colors-redirect
 
 provider-compute: oci
 provider-smtp: resend
