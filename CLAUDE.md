@@ -16,8 +16,9 @@ green, red, blue               installed launchers, one per colour (see Commands
 skills-lock.json               records the skill source and content hash
 .envrc                         secret-free; sources the gitignored .envrc.private
 devenv.nix, devenv.lock        the toolchain (see Prerequisites in README.md)
-package.json, bun.lock         Bun manifest for the red launcher's dependency resolution
 ```
+
+There is deliberately **no `package.json`, `bun.lock` or `node_modules`**. Red used to need them; since once `39f00e2` its launcher carries its own pins and resolves them on first run, exactly as green and blue always have. A manifest here would record the same commit a second time and drift from the launcher at the next re-pin — which it did, sitting at `72e8135` while the launchers had moved on. If one is ever added back, its versions win over the launcher's pins.
 
 Everything else is generated (`.colors/`) or secret (`.envrc.private`). Check `git ls-files` rather than assuming — `.gitignore` is `.*` with narrow negations, so what is tracked is not obvious from the working tree (see Gotchas).
 
@@ -25,7 +26,7 @@ Everything else is generated (`.colors/`) or secret (`.envrc.private`). Check `g
 
 Three launchers are installed and they are interchangeable — same `colors.yml`, same DAG, same OpenTofu state. `./green` is the one used in practice and the one the examples below assume; `./red` (Bun) and `./blue` (uv) accept exactly the same commands and flags. Switch only between completed commands, never concurrently against the same state.
 
-None of them needs an install step. Each resolves its own dependencies on first run — green into `~/.gitlibs`, blue through uv's script metadata, red into `~/.cache/package-once-red/` keyed on the pin in `package.json` — and none writes into this repository. Red gained that behaviour in once `39f00e2`; before it, `./red` failed here on a bare `Cannot find package 'package-once-red'` because this repository has no `node_modules` and nothing had run `bun install`.
+None of them needs an install step. Each resolves its own dependencies on first run — green into `~/.gitlibs`, blue through uv's script metadata, red into `~/.cache/package-once-red/` keyed on the launcher's own pins — and none writes into this repository. Red gained that behaviour in once `39f00e2`; before it, `./red` failed here on a bare `Cannot find package 'package-once-red'` because this repository has no `node_modules` and nothing had run `bun install`.
 
 ```sh
 ./green describe            # read-only status: providers, compute IP, per-app image/digest/update-available
@@ -56,7 +57,7 @@ npx skills update -p            # refreshes .agents/skills/ and skills-lock.json
 cp .agents/skills/package-once-green/green green    # and red, blue
 ```
 
-The second step is not optional and nothing does it for you. **The three launchers at the repo root are copies of the skill payloads, not symlinks to them** — `skills update` rewrites `.agents/skills/` and leaves the root files untouched, so a project that skips the copy keeps running the old pin while its lockfile claims the new one. Refresh all three or the colours stop being interchangeable.
+The second step is not optional and nothing does it for you. **The three launchers at the repo root are copies of the skill payloads, not symlinks to them** — `skills update` rewrites `.agents/skills/` and leaves the root files untouched, so a project that skips the copy keeps running the old pin while `skills-lock.json` claims the new one. Refresh all three or the colours stop being interchangeable.
 
 `npx skills use <pkg>@<skill>` is **not** the update command despite the name; it prints a prompt for using a skill without installing it, and leaves the project unchanged. The installing verbs are `add` and `update`.
 
