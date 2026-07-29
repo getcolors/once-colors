@@ -5,19 +5,19 @@
       "source": "getcolors/once",
       "sourceType": "github",
       "skillPath": "skills/package-once-blue/SKILL.md",
-      "computedHash": "cef2f9e3da4ccc47d872b8723a9a1c4b6f9799e4f1e75ae02cacc9d270882139"
+      "computedHash": "69abb0b5f0093de940cb152b491e33c646393993990c0e8bbc222afbd97ababd"
     },
     "package-once-green": {
       "source": "getcolors/once",
       "sourceType": "github",
       "skillPath": "skills/package-once-green/SKILL.md",
-      "computedHash": "4979e18220c0c6af9e4529037007ad036f2b94b4a5c04e780e4ce0fe514ea818"
+      "computedHash": "4f080e0217fb2f8782e855d37948993d2f9f6afc477e8a01baaf2e860db5d3b7"
     },
     "package-once-red": {
       "source": "getcolors/once",
       "sourceType": "github",
       "skillPath": "skills/package-once-red/SKILL.md",
-      "computedHash": "42d88e06f6946c285498bde1f7e5d383888d34991178c100d539752a615d6593"
+      "computedHash": "9345d4001aa30a047e7c0b17fe3e69a0661f44feec7674e25c5444adae5ac4b5"
     }
   }
 }

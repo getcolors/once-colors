@@ -43,9 +43,9 @@ None of them needs an install step. Each resolves its own dependencies on first 
 
 ## Architecture
 
-`green` is a thin babashka launcher. It holds *no* logic beyond dependency resolution and locating `colors.yml`; validation, the workflow DAG, and every step live in the `io.github.bigconfig-ai/once` library, pinned by git SHA inside `green` itself (`once-sha`, `green-sha`, managed upstream by `bb pin` — do not hand-edit). `launcher-contract` guards against a stale pin: a mismatch exits 2 with an actionable message instead of a "could not locate" error. Set `ONCE_LIB_ROOT` / `GREEN_LIB_ROOT` to point at working trees instead of the pins.
+`green` is a thin babashka launcher. It holds *no* logic beyond dependency resolution and locating `colors.yml`; validation, the workflow DAG, and every step live in the `io.github.getcolors/once` library, pinned by git SHA inside `green` itself (`once-sha`, `green-sha`, managed upstream by `bb pin` — do not hand-edit). `launcher-contract` guards against a stale pin: a mismatch exits 2 with an actionable message instead of a "could not locate" error. Set `ONCE_LIB_ROOT` / `GREEN_LIB_ROOT` to point at working trees instead of the pins.
 
-To read library source: `~/.gitlibs/libs/io.github.bigconfig-ai/once/<once-sha>/green/src/clj/io/github/bigconfig_ai/once/` — `workflow.clj` (the DAG), `validate.clj` (provider registry: required keys, secrets, and which secrets are passed to OpenTofu as env vars), `tools.clj` (the steps and their templates), `github.clj` (deploy-key generation and publication), `describe.clj` (the read-only report).
+To read library source: `~/.gitlibs/libs/io.github.getcolors/once/<once-sha>/green/src/clj/io/github/bigconfig_ai/once/` — `workflow.clj` (the DAG), `validate.clj` (provider registry: required keys, secrets, and which secrets are passed to OpenTofu as env vars), `tools.clj` (the steps and their templates), `github.clj` (deploy-key generation and publication), `describe.clj` (the read-only report).
 
 ### Updating to a newer ONCE
 
