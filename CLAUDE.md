@@ -18,7 +18,7 @@ skills-lock.json               records the skill source and content hash
 devenv.nix, devenv.lock        the toolchain (see Prerequisites in README.md)
 ```
 
-There is deliberately **no `package.json`, `bun.lock` or `node_modules`**. Red used to need them; since once `39f00e2` its launcher carries its own pins and resolves them on first run, exactly as green and blue always have. A manifest here would record the same commit a second time and drift from the launcher at the next re-pin — which it did, sitting at `72e8135` while the launchers had moved on. If one is ever added back, its versions win over the launcher's pins.
+There is deliberately **no `package.json`, `bun.lock` or `node_modules`**. Red used to need them; its launcher now carries its own pins and resolves them on first run, exactly as green and blue always have. A manifest here would record the same commit a second time and drift from the launcher at the next re-pin — which it did, sitting at `72e8135` while the launchers had moved on. Adding one back changes nothing: the launcher reads only its own `PINS`. Repin by re-installing the skill.
 
 Everything else is generated (`.colors/`) or secret (`.envrc.private`). Check `git ls-files` rather than assuming — `.gitignore` is `.*` with narrow negations, so what is tracked is not obvious from the working tree (see Gotchas).
 
