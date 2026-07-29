@@ -1,0 +1,8 @@
+{
+  "name": "once-colors",
+  "private": true,
+  "dependencies": {
+    "package-once-red": "github:bigconfig-ai/once#72e8135f6b3095dc9f0760230140d2629ebfca5b",
+    "red": "github:amiorin/red#b434e37568b91228ef14c2271f6fbeea805ae7ae"
+  }
+}

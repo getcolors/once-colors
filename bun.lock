@@ -1,0 +1,20 @@
+{
+  "lockfileVersion": 1,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "once-colors",
+      "dependencies": {
+        "package-once-red": "github:bigconfig-ai/once#72e8135f6b3095dc9f0760230140d2629ebfca5b",
+        "red": "github:amiorin/red#b434e37568b91228ef14c2271f6fbeea805ae7ae",
+      },
+    },
+  },
+  "packages": {
+    "package-once-red": ["package-once-red@github:bigconfig-ai/once#72e8135", { "peerDependencies": { "red": "*" }, "optionalPeers": ["red"] }, "getcolors-once-72e8135", "sha512-f9jo+DDVlbF4AcnZdsmgpR2p+Iv+IOD7rzuXd9x14M41WmRr7hgoOQk1RM4tm9EtAKS0ozebMJ0rfNoU+o3ong=="],
+
+    "red": ["red@github:amiorin/red#b434e37", { "dependencies": { "zod": "^4.0.0" } }, "getcolors-red-b434e37", "sha512-KbSmSUtqBn+iuV1MBURvqMnhexQ/rY284InNJHjGjWSW7l4DhNIa893rpevcTit93QM6gwZ7HbOdZDhRYGOuAQ=="],
+
+    "zod": ["zod@4.4.3", "", {}, "sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ=="],
+  }
+}

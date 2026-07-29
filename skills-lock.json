@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "skills": {
+    "package-once-blue": {
+      "source": "getcolors/once",
+      "sourceType": "github",
+      "skillPath": "skills/package-once-blue/SKILL.md",
+      "computedHash": "74bbaa3558a7f9326775d527ced52f01fdec9750084bd5969ff882e592b2d0c1"
+    },
+    "package-once-green": {
+      "source": "getcolors/once",
+      "sourceType": "github",
+      "skillPath": "skills/package-once-green/SKILL.md",
+      "computedHash": "27121bd75e53664c1789b83124b0277582c1ae02cffcbf6e183bde2fc17f13b8"
+    },
+    "package-once-red": {
+      "source": "getcolors/once",
+      "sourceType": "github",
+      "skillPath": "skills/package-once-red/SKILL.md",
+      "computedHash": "453f80c16a30c598f9256c3ee20f3409303b3be24efc9a338ce1375bc8f77c86"
+    }
+  }
+}

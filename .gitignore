@@ -1,3 +1,4 @@
 .*
 !.envrc
 !.gitignore
+node_modules/
