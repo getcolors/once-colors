@@ -9,10 +9,13 @@ once:
     - host: getcolors.ai
       image: ghcr.io/getcolors/colors-redirect:latest
       github: getcolors/colors-redirect
-    - host: bigconfig.online
+    - host: bigconfig.ai
       image: ghcr.io/getcolors/colors-redirect:latest
       github: getcolors/colors-redirect
-    - host: www.bigconfig.online
+    - host: www.bigconfig.ai
+      image: ghcr.io/getcolors/colors-redirect:latest
+      github: getcolors/colors-redirect
+    - host: marketplace.bigconfig.ai
       image: ghcr.io/getcolors/colors-redirect:latest
       github: getcolors/colors-redirect
 
