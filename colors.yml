@@ -36,6 +36,11 @@ oci-shape: VM.Standard.A2.Flex
 # Pinned to the image this instance actually booted from. Left unset, source_id
 # tracks whatever Canonical published most recently, and since it forces
 # replacement, a routine apply would eventually propose destroying the server.
+# Re-derive it from the running VM rather than guessing — it is the boot image
+# of the instance named by oci-display-name in the compartment above:
+#   oci compute instance list --compartment-id <oci-compartment-id> \
+#     --display-name once --query 'data[0]."source-details"."source-id"'
+#   oci compute image get --image-id <that> --query 'data."display-name"'
 oci-image-id: ocid1.image.oc1.eu-frankfurt-1.aaaaaaaal4itgbo25fulz7jbwyjdk2qc775l4npiqraf44ac62pf4iqfddsa
 oci-ocpus: 1
 oci-memory-in-gbs: 6

@@ -3,4 +3,5 @@
 !.gitignore
 !.agents
 !.claude
+!.github
 node_modules/

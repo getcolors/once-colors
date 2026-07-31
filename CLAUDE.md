@@ -16,6 +16,7 @@ green, red, blue               installed launchers, one per colour (see Commands
 skills-lock.json               records the skill source and content hash
 .envrc                         secret-free; sources the gitignored .envrc.private
 devenv.nix, devenv.lock        the toolchain (see Prerequisites in README.md)
+.github/workflows/ci.yml       credential-free CI: `./green build` and the launcher-vs-payload diff
 ```
 
 There is deliberately **no `package.json`, `bun.lock` or `node_modules`**. Red used to need them; its launcher now carries its own pins and resolves them on first run, exactly as green and blue always have. A manifest here would record the same commit a second time and drift from the launcher at the next re-pin — which it did, sitting at `72e8135` while the launchers had moved on. Adding one back changes nothing: the launcher reads only its own `PINS`. Repin by re-installing the skill.
@@ -57,7 +58,7 @@ npx skills update -p            # refreshes .agents/skills/ and skills-lock.json
 cp .agents/skills/package-once-green/green green    # and red, blue
 ```
 
-The second step is not optional and nothing does it for you. **The three launchers at the repo root are copies of the skill payloads, not symlinks to them** — `skills update` rewrites `.agents/skills/` and leaves the root files untouched, so a project that skips the copy keeps running the old pin while `skills-lock.json` claims the new one. Refresh all three or the colours stop being interchangeable.
+The second step is not optional and nothing does it for you. **The three launchers at the repo root are copies of the skill payloads, not symlinks to them** — `skills update` rewrites `.agents/skills/` and leaves the root files untouched, so a project that skips the copy keeps running the old pin while `skills-lock.json` claims the new one. Refresh all three or the colours stop being interchangeable. The `launchers` job in `.github/workflows/ci.yml` diffs root against payload for each colour, so a skipped copy fails CI instead of going unnoticed — but only after the update is pushed, and only in this repository.
 
 `npx skills use <pkg>@<skill>` is **not** the update command despite the name; it prints a prompt for using a skill without installing it, and leaves the project unchanged. The installing verbs are `add` and `update`.
 
@@ -109,7 +110,7 @@ Installing a new key invalidates the old one immediately, so `files/authorized-k
 
 ## Gotchas
 
-- `.gitignore` is `.*` with `!.envrc` and `!.gitignore`, so any new dotfile is invisible to git unless explicitly negated. The self-negation is what keeps the file tracked; without it the pattern hides `.gitignore` from itself, and it went missing from a clone in exactly that way once already. If it is ever absent, restore it before `git add`, or `.envrc.private` and `.colors/` stage as ordinary untracked files.
+- `.gitignore` is `.*` with narrow negations (`!.envrc`, `!.gitignore`, `!.agents`, `!.claude`, `!.github`), so any new dotfile is invisible to git unless explicitly negated — `.github/workflows/ci.yml` needed `!.github` before `git add` would see it, and the same applies to the next one. The self-negation is what keeps the file tracked; without it the pattern hides `.gitignore` from itself, and it went missing from a clone in exactly that way once already. If it is ever absent, restore it before `git add`, or `.envrc.private` and `.colors/` stage as ordinary untracked files.
 - The `github` step shells out to `gh`. It is not one of the tools `README.md` lists as a prerequisite, but a `create` with any `github:` application fails without it.
 - `OCI_CLI_AUTH=security_token` in `.envrc` exists only because the local OCI `DEFAULT` profile is session-token based and the `oci` CLI rejects it otherwise. The OpenTofu `oracle/oci` provider detects `security_token_file` on its own — do not treat the variable as something `green` needs. Session tokens expire; a stale one surfaces as an auth failure at plan time, not as a config error.
 - `oci-image-id` pins the boot image, so the compute template renders no image data source at all. Clearing that key brings the lookup back and makes `source_id` track whatever Canonical published most recently — and since it is ForceNew, a routine apply months later proposes destroying the VM. Leave it pinned; re-pin deliberately when the image should change. (The lookup itself is sound now — it filters on `oci-shape` rather than a hardcoded `VM.Standard.A1.Flex`.)

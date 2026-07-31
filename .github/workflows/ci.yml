@@ -1,0 +1,72 @@
+name: CI
+
+# Nothing here touches a provider or reads a credential. `build` renders the
+# work tree from colors.yml alone and the launcher check is a diff, so this
+# workflow cannot reach the live stack even by accident — which is why it needs
+# no environment, no secrets and no `permissions` beyond reading the checkout.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # The version devenv.nix installs locally, pinned with the checksum published
+  # alongside the release. CI deliberately does not install devenv: `./green
+  # build` needs only bb and git — verified against a cold ~/.gitlibs with no
+  # JDK on PATH — while devenv.nix also carries tofu, ansible, bun, uv and five
+  # provider CLIs that no job here runs.
+  BB_VERSION: 1.12.218
+  BB_SHA256: 7bd028cc794732ffde3da31ce4379840893c8e54f1046f92a8dfc4f4b3cddaf8
+
+jobs:
+  # A broken colors.yml used to surface only when an operator next ran a real
+  # command against production. Validation reports every missing or malformed
+  # key at once and exits 2, so it costs seconds to fail the push instead.
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install babashka
+        run: |
+          url="https://github.com/babashka/babashka/releases/download/v${BB_VERSION}/babashka-${BB_VERSION}-linux-amd64-static.tar.gz"
+          curl -fsSL "$url" -o /tmp/bb.tar.gz
+          echo "${BB_SHA256}  /tmp/bb.tar.gz" | sha256sum -c -
+          mkdir -p "$HOME/.bb"
+          tar -xzf /tmp/bb.tar.gz -C "$HOME/.bb" bb
+          "$HOME/.bb/bb" --version
+          echo "$HOME/.bb" >> "$GITHUB_PATH"
+
+      # The launcher resolves `once` and `green` from the git SHAs it carries
+      # into a cold ~/.gitlibs here, so this covers the pins as well as the
+      # desired state: a SHA that no longer resolves, or one too old for the
+      # launcher's contract, fails with exit 2 rather than at the next create.
+      - name: Render the work tree
+        run: ./green build
+
+  # The root launchers are copies of the skill payloads, not symlinks, so
+  # `npx skills update -p` rewrites .agents/skills/ and leaves them untouched.
+  # That failure is silent: skills-lock.json claims a version the launcher does
+  # not run, and the three colours stop being interchangeable. It is a diff.
+  launchers:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Root launchers match the installed skill payloads
+        run: |
+          status=0
+          for colour in green red blue; do
+            payload=".agents/skills/package-once-$colour/$colour"
+            if diff -u "$payload" "./$colour"; then
+              echo "ok — ./$colour matches $payload"
+            else
+              echo "::error file=$colour::./$colour differs from $payload — copy it over: cp $payload $colour"
+              status=1
+            fi
+          done
+          exit "$status"

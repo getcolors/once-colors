@@ -90,6 +90,20 @@ COLORS_PAR_COMPUTE_PREVENT_DESTROY=false ./green delete
 
 The flag is intentionally not disable-able by editing the file alone.
 
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every push to `main` and every pull request.
+Both jobs are credential-free and never reach a provider, so CI cannot touch the
+live stack:
+
+- **build** — runs `./green build`. A malformed `colors.yml`, or a launcher pin
+  that no longer resolves, fails the push instead of surfacing when someone next
+  runs a real command against production.
+- **launchers** — checks that `./green`, `./red` and `./blue` still match the
+  payloads under `.agents/skills/`. They are copies, not symlinks, so
+  `npx skills update -p` leaves them behind and `skills-lock.json` starts
+  claiming a version they do not run.
+
 ## How a deploy reaches the server
 
 CI does not have shell access to the box. The Ansible stage creates a `deploy`
@@ -134,15 +148,17 @@ green          launcher (babashka); delegates to the pinned `once` library
 .envrc         direnv config, secret-free, committed
 .envrc.private credentials, gitignored, create locally
 .colors/       generated OpenTofu + Ansible trees, gitignored — do not edit
+.github/       CI: the build check and the launcher diff, no credentials
 ```
 
-Note that `.gitignore` ignores all dotfiles (`.*`) except `.envrc`, so a new
-dotfile needs an explicit negation to be tracked. It also ignores *itself*, so
-it is not in the repository and a fresh clone starts without it. Recreate it
-before staging anything, or `.envrc.private` will be committed:
+Note that `.gitignore` ignores all dotfiles (`.*`), so every tracked dotfile
+needs an explicit negation — including `.gitignore` itself, which is the only
+reason it stays in the repository. Adding CI, for one, needed `!.github` before
+git could see the workflow at all. If the file is ever missing from a clone,
+restore it before staging anything, or `.envrc.private` is committed:
 
 ```sh
-printf '.*\n!.envrc\n' > .gitignore
+printf '.*\n!.envrc\n!.gitignore\n!.agents\n!.claude\n!.github\nnode_modules/\n' > .gitignore
 ```
 
 See [CLAUDE.md](CLAUDE.md) for the workflow DAG, how stages pass values to each
