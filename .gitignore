@@ -1,6 +1,7 @@
 .*
 !.envrc
 !.gitignore
+!.nojekyll
 !.agents
 !.claude
 !.github
