@@ -61,6 +61,63 @@ workflow and the contract it consumes.
 
 ## Compute providers
 
+### Azure
+
+```yaml
+provider-compute: azure
+azure-subscription-id: 00000000-0000-0000-0000-000000000000
+azure-location: swedencentral
+azure-resource-group: once
+azure-name: once
+azure-vm-size: Standard_D2pls_v6
+azure-image-publisher: Canonical
+azure-image-offer: ubuntu-24_04-lts
+azure-image-sku: server-arm64
+azure-image-version: 24.04.202608020
+azure-vnet-cidr: 10.10.0.0/16
+azure-subnet-cidr: 10.10.1.0/24
+azure-boot-disk-size-gb: 30
+azure-ssh-authorized-keys: ~/.ssh/id_ed25519.pub
+```
+
+Azure uses the native Azure CLI session from `az login`. It creates a dedicated resource group, VNet, subnet, public IP, network security group, NIC, and VM.
+
+### AWS
+
+```yaml
+provider-compute: aws
+aws-region: eu-west-1
+aws-availability-zone: eu-west-1a
+aws-name: once
+aws-instance-type: t3.small
+aws-image-id: ami-...
+aws-vpc-cidr: 10.0.0.0/16
+aws-subnet-cidr: 10.0.1.0/24
+aws-root-volume-size-gb: 30
+aws-ssh-authorized-keys: ~/.ssh/id_ed25519.pub
+```
+
+AWS uses the native credential chain (for example, temporary credentials from `aws login`). It creates an isolated VPC, public subnet, internet gateway, security group, key pair, and EC2 instance.
+
+### Google Cloud
+
+```yaml
+provider-compute: google
+google-project: example-project
+google-region: europe-west4
+google-zone: europe-west4-b
+google-name: once
+google-machine-type: t2a-standard-1
+google-image-project: ubuntu-os-cloud
+google-image-family: ubuntu-2404-lts-arm64
+google-image-id: projects/ubuntu-os-cloud/global/images/ubuntu-2404-noble-arm64-v20260723
+google-subnet-cidr: 10.20.1.0/24
+google-boot-disk-size-gb: 30
+google-ssh-authorized-keys: ~/.ssh/id_ed25519.pub
+```
+
+Google uses Application Default Credentials from `gcloud auth application-default login`. It creates a custom VPC, subnet, firewall rule, static address, and Compute Engine instance.
+
 ### DigitalOcean
 
 ```yaml

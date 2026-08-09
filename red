@@ -14,8 +14,8 @@ import { homedir } from "node:os";
 // directory, which would halt Bun's upward resolution of `package-once-red` and
 // break the development symlink at red/red.
 const PINS = {
-  "package-once-red": "github:getcolors/once#adeb1f7738a11293bdde6343b16fddbfe92bb2ae",
-  "red": "github:getcolors/red#b434e37568b91228ef14c2271f6fbeea805ae7ae",
+  "package-once-red": "github:getcolors/once#e643e0e5e50b6c808945af16c192491029d8ebd0",
+  "red": "github:getcolors/red#48076768e8954030904b7d966fe636c4c01592ce",
 };
 
 // PINS is the only source of versions, as green's inline SHAs and blue's PEP
