@@ -69,18 +69,19 @@ An outdated launcher does not render from a stale contract — `launcher-contrac
 The `create` DAG:
 
 ```
-start ─┬─ tofu-compute ─┐
-       └─ tofu-smtp ────┴─ tofu-dns ─ tofu-smtp-post ─ ansible-local ─ ansible-remote ─ github
+start ─ tofu-compute ─ tofu-smtp ─ tofu-dns ─ tofu-smtp-post ─ ansible-local ─ ansible-remote ─ github
 ```
 
-`delete` is not merely this graph reversed. It is a distinct wiring that runs strictly serially until the last fan-out, and it leads with two steps `create` never runs in that position:
+`delete` is not merely this graph reversed. It is a distinct wiring that runs serially through compute retirement, and it leads with two steps `create` never runs in that position:
 
 ```
-start ─ github ─ ansible-cleanup ─ tofu-smtp-post ─ tofu-dns ─┬─ tofu-smtp
-                                                              └─ tofu-compute
+start ─ github ─ ansible-cleanup ─ tofu-smtp-post ─ tofu-dns ─ tofu-smtp ─ tofu-compute
 ```
 
-`github` runs *first* on delete, revoking the published Actions secret and variables before the server they point at goes away; `ansible-cleanup` then drops the managed `~/.ssh/config` block.
+`github` runs *first* on delete, revoking the published Actions secret and variables before the server they point at goes away; `ansible-cleanup` then drops the managed `~/.ssh/config` block. A failed local
+cleanup prevents remote cleanup. Compute retires only after the application
+stages finish, so a validated retired journal lets repeated delete stop before
+host access or key-file reads. Credential and destroy guards still apply.
 
 The compute library returns normalized node addresses, login users, and SSH
 identity metadata. SMTP returns the Resend domain and DNS records consumed by
