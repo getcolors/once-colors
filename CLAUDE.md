@@ -69,8 +69,8 @@ An outdated launcher does not render from a stale contract — `launcher-contrac
 The `create` DAG:
 
 ```
-start ─┬─ tofu-compute ─┐                             ┌─ ansible-local
-       └─ tofu-smtp ────┴─ tofu-dns ─ tofu-smtp-post ─┴─ ansible-remote ─ github
+start ─┬─ tofu-compute ─┐
+       └─ tofu-smtp ────┴─ tofu-dns ─ tofu-smtp-post ─ ansible-local ─ ansible-remote ─ github
 ```
 
 `delete` is not merely this graph reversed. It is a distinct wiring that runs strictly serially until the last fan-out, and it leads with two steps `create` never runs in that position:
@@ -82,11 +82,18 @@ start ─ github ─ ansible-cleanup ─ tofu-smtp-post ─ tofu-dns ─┬─ t
 
 `github` runs *first* on delete, revoking the published Actions secret and variables before the server they point at goes away; `ansible-cleanup` then drops the managed `~/.ssh/config` block.
 
-Stages hand off through OpenTofu `params` outputs: compute emits the public IP/user, smtp emits the Resend domain id and DNS records, which `tofu-dns` renders into `apps.tf.json` / `smtp.tf.json`. On a real `delete` the start step reads those outputs back out of state so a destroy has the same params a create had.
+The compute library returns normalized node addresses, login users, and SSH
+identity metadata. SMTP returns the Resend domain and DNS records consumed by
+`tofu-dns`. Delete reads the recorded compute inventory before cleanup. The
+payload refresh did not migrate live ownership; follow compute-migration.md
+before real operations.
 
 ### Generated work tree
 
-`build` scaffolds `.colors/<profile>/<tool>/` (workdir and profile come from `colors.yml`). It is gitignored and fully regenerated — **never edit anything under `.colors/` by hand**; change `colors.yml` or the upstream templates instead. Remote state keys are `<profile>/<tool>.tfstate`, so two profiles never collide in the same R2 bucket. `backend.tf.json` is written by a `:before` advice on each tofu stage rather than by the template.
+`build` scaffolds `.colors/<profile>/<tool>/` (workdir and profile come from `colors.yml`). It is gitignored and fully regenerated — **never edit anything under `.colors/` by hand**; change `colors.yml` or the upstream templates instead. Compute state lives under `<profile>/compute/`, with separate shared, node,
+and coordination objects. Application stages retain `<profile>/<tool>.tfstate`.
+The library owns compute backend configuration; ONCE still configures the
+backends for its DNS and SMTP stages.
 
 ### Secrets
 
