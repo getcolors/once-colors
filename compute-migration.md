@@ -1,6 +1,6 @@
 # Shared compute migration
 
-Installed `getcolors/once` revision `58bc6dcbc1af6ddd40609c4b81ed5420b373fe2f`. Root launchers match the
+Installed `getcolors/once` revision `173823ebdf6b90145db632e73ef8d8388cd93174`. Root launchers match the
 installed skill payloads from a verified Skills CLI installation.
 The existing lockfile records that installation.
 
@@ -20,10 +20,5 @@ in temporary directories with a sanitized environment. Compute documents were
 present and rendered backend configuration contained no credentials. Offline
 builds do not establish live authentication, migrated state, or application health.
 
-Configuration changes:
-
-- Made public IPv4 SSH and web access explicit for the provider-independent compute request.
-
-The external provider key reference is preserved. Verify that the operator
-SSH agent can authenticate, or configure ssh-private-key-path when an explicit
-identity is needed, before live application access.
+The external provider key reference is preserved. Verify operator SSH agent
+access, or configure ssh-private-key-path when an explicit identity is needed.
