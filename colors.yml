@@ -55,3 +55,7 @@ oci-ssh-authorized-keys: ~/.ssh/id_ed25519.pub
 # State keys are derived as <profile>/<tool>.tfstate.
 r2-bucket: tofu-state-319271fed8bc6d2d9059362be1165f37-eu
 r2-endpoint: https://319271fed8bc6d2d9059362be1165f37.eu.r2.cloudflarestorage.com
+
+# Explicit public IPv4 SSH and web policy for the shared compute request.
+compute-ssh-sources: [0.0.0.0/0]
+compute-http-sources: [0.0.0.0/0]

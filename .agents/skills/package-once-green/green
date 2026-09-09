@@ -35,11 +35,11 @@
   "Minimum io.github.getcolors/once contract this launcher requires.
   Guarded at run time so a stale pin fails loudly instead of rendering
   templates from an older commit."
-  10)
+  14)
 
 ;; Managed by `bb pin` — do not edit by hand.
-(def ^:private once-sha "e643e0e5e50b6c808945af16c192491029d8ebd0")
-(def ^:private green-sha "ceb4159a19ec281d60f10d11295c05c5de5f1c42")
+(def ^:private once-sha "be8315f4ad84bce47de7a87b39d9facede22a9ba")
+(def ^:private green-sha "3f33f5d4dcce1f8d97a11b6972e13eb3f0b37654")
 
 (def ^:private once-git-url "https://github.com/getcolors/once.git")
 (def ^:private green-git-url "https://github.com/getcolors/green.git")
